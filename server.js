@@ -21,37 +21,11 @@ let draftOrder = []
 let timer = 60
 let interval = null
 
-/* ---------- POSITION LIMITS ---------- */
-
-const POSITION_LIMITS = {
-  QB: 2,
-  RB: 4,
-  WR: 4,
-  TE: 2,
-  Oline: 5,
-
-  LE: 2,
-  RE: 2,
-  NT: 2,
-
-  LOLB: 2,
-  LILB: 2,
-  RILB: 2,
-  ROLB: 2,
-
-  LCB: 2,
-  RCB: 2,
-  FS: 2,
-  SS: 2,
-
-  K: 1,
-  P: 1
-}
-
-/* ---------- HELPERS ---------- */
+/* ---------- SNAKE ORDER ---------- */
 
 function snakeOrder(teamCount, rounds){
   let order = []
+
   for(let r = 0; r < rounds; r++){
     if(r % 2 === 0){
       for(let i = 0; i < teamCount; i++) order.push(i)
@@ -59,69 +33,62 @@ function snakeOrder(teamCount, rounds){
       for(let i = teamCount - 1; i >= 0; i--) order.push(i)
     }
   }
+
   return order
-}
-
-function getTeamRosterCounts(teamIndex){
-  let counts = {}
-
-  for(let i = 0; i < drafted.length; i++){
-    let owner = draftOrder[i]
-    if(owner !== teamIndex) continue
-
-    let pick = drafted[i]
-    if(!pick || pick === "SKIPPED") continue
-
-    let player = players.find(p => p.name === pick)
-    let pos = player ? player.position : "TEAM"
-
-    counts[pos] = (counts[pos] || 0) + 1
-  }
-
-  return counts
 }
 
 /* ---------- TIMER ---------- */
 
 function startTimer(){
+
   if(interval) clearInterval(interval)
 
   timer = 60
 
   interval = setInterval(()=>{
+
     timer--
     io.emit("timer", timer)
 
     if(timer <= 0){
-      skipPick()
+      autoPick()
     }
+
   }, 1000)
 }
 
-/* ---------- SKIP ---------- */
+/* ---------- AUTO PICK ---------- */
 
-function skipPick(){
-  drafted.push("SKIPPED")
+function autoPick(){
+
+  let available = players.filter(p => !drafted.includes(p.name))
+
+  if(!available.length){
+    console.log("No players left for auto pick")
+    return
+  }
+
+  let pick = available[0]
+
+  console.log("Auto picking:", pick.name)
+
+  drafted.push(pick.name)
   currentPick++
+
   emitState()
   startTimer()
 }
 
-/* ---------- STATE ---------- */
+/* ---------- EMIT STATE ---------- */
 
 function emitState(){
-
-  let rosters = teams.map((_, i)=>getTeamRosterCounts(i))
-
   io.emit("state", {
     teams,
     nflTeams,
     players,
     drafted,
     currentPick,
-    draftOrder,
-    rosters,
-    POSITION_LIMITS
+    draftOrder
   })
 }
 
@@ -129,9 +96,18 @@ function emitState(){
 
 io.on("connection", socket => {
 
+  console.log("✅ Client connected")
+
   emitState()
 
+  /* ---------- SETUP ---------- */
+
   socket.on("setup", data => {
+
+    console.log("🔥 Setup received")
+
+    if(!data) return
+
     teams = data.teams || []
     nflTeams = data.nflTeams || []
     players = data.players || []
@@ -141,39 +117,57 @@ io.on("connection", socket => {
 
     draftOrder = snakeOrder(teams.length, 20)
 
+    console.log("Teams:", teams)
+    console.log("Players loaded:", players.length)
+
     startTimer()
     emitState()
   })
+
+  /* ---------- LOAD SAVED STATE ---------- */
 
   socket.on("loadState", data => {
-    teams = data.teams || []
-    nflTeams = data.nflTeams || []
-    players = data.players || []
-    drafted = data.drafted || []
-    currentPick = data.currentPick || 0
-    draftOrder = data.draftOrder || []
 
-    startTimer()
-    emitState()
+    console.log("🔥 LOAD STATE RECEIVED")
+
+    if(!data){
+      console.log("⚠️ No data received")
+      return
+    }
+
+    try {
+
+      teams = data.teams || []
+      nflTeams = data.nflTeams || []
+      players = data.players || []
+      drafted = data.drafted || []
+      currentPick = data.currentPick || 0
+      draftOrder = data.draftOrder || []
+
+      console.log("✅ Loaded Draft:")
+      console.log("Teams:", teams)
+      console.log("Drafted picks:", drafted.length)
+
+      startTimer()
+      emitState()
+
+    } catch (err) {
+      console.log("❌ Error loading state:", err)
+    }
   })
+
+  /* ---------- DRAFT ---------- */
 
   socket.on("draft", name => {
 
     if(!name) return
-    if(drafted.includes(name)) return
 
-    let teamIndex = draftOrder[currentPick]
-
-    let player = players.find(p => p.name === name)
-    let position = player ? player.position : "TEAM"
-
-    let counts = getTeamRosterCounts(teamIndex)
-    let limit = POSITION_LIMITS[position] || 99
-
-    if((counts[position] || 0) >= limit){
-      socket.emit("errorMsg", "Limit reached for " + position)
+    if(drafted.includes(name)){
+      console.log("⚠️ Duplicate pick prevented:", name)
       return
     }
+
+    console.log("Pick made:", name)
 
     drafted.push(name)
     currentPick++
@@ -182,34 +176,36 @@ io.on("connection", socket => {
     emitState()
   })
 
-  socket.on("replacePick", ({ index, name }) => {
-    if(drafted[index] !== "SKIPPED") return
-    if(drafted.includes(name)) return
-
-    drafted[index] = name
-    emitState()
-  })
-
-  socket.on("forcePick", ({ index, name }) => {
-    if(index < 0 || index >= draftOrder.length) return
-    drafted[index] = name
-    emitState()
-  })
+  /* ---------- UNDO ---------- */
 
   socket.on("undo", () => {
+
     if(!drafted.length) return
-    drafted.pop()
+
+    let removed = drafted.pop()
     currentPick--
+
+    console.log("Undo pick:", removed)
+
     emitState()
   })
 
+  /* ---------- PAUSE ---------- */
+
   socket.on("pause", () => {
+
+    console.log("⏸ Draft paused")
+
     clearInterval(interval)
     interval = null
   })
 
 })
 
-server.listen(3000, () => {
-  console.log("Server running on 3000")
+/* ---------- START SERVER ---------- */
+
+const PORT = 3000
+
+server.listen(PORT, () => {
+  console.log("🚀 Server running on port " + PORT)
 })
