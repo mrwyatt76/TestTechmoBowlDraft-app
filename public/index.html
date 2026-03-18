@@ -56,7 +56,8 @@ button{padding:8px;margin:2px;}
 <button onclick="exportCSV()">Export CSV</button>
 <button onclick="saveDraft()">Save Draft</button>
 <button onclick="loadDraft()">Load Draft</button>
-
+<button onclick="forcePick()">Force Pick</button>
+  
 <br><br>
 
 Draft Timer: <span id="timer">60</span>
@@ -194,7 +195,18 @@ window.resetDraft = function(){
     nflTeams: state.nflTeams
   })
 }
+/* Force pick */
+window.forcePick = function(){
 
+  let index = prompt("Enter pick number to override:")
+  let name = prompt("Enter player name:")
+
+  if(index === null || name === null) return
+
+  index = parseInt(index) - 1
+
+  socket.emit("forcePick", { index, name })
+}
 window.setFilter = function(p){
   positionFilter = p
   render()
