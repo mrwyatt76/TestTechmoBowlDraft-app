@@ -8,6 +8,9 @@ const io = new Server(server)
 
 app.use(express.static("public"))
 
+app.get("/players.json", (req, res) => {
+  res.sendFile(__dirname + "/players.json")
+})
 /* ---------- STATE ---------- */
 
 let teams = []
