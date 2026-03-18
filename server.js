@@ -167,7 +167,7 @@ io.on("connection", socket => {
     emitState()
   })
 
-  /* ---------- REPLACE SKIPPED PICK (ADDED) ---------- */
+  /* ---------- REPLACE SKIPPED PICK ---------- */
 
   socket.on("replacePick", ({ index, name }) => {
 
@@ -186,6 +186,27 @@ io.on("connection", socket => {
     drafted[index] = name
 
     console.log("✅ Replaced skipped pick:", name)
+
+    emitState()
+  })
+
+  /* 🔥 FORCE PICK (THIS IS WHAT YOU ADD) */
+
+  socket.on("forcePick", ({ index, name }) => {
+
+    if(index < 0 || index >= draftOrder.length){
+      console.log("⚠️ Invalid index")
+      return
+    }
+
+    if(!name){
+      console.log("⚠️ No player name")
+      return
+    }
+
+    drafted[index] = name
+
+    console.log("⚡ Force pick:", index, name)
 
     emitState()
   })
