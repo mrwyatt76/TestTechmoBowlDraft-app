@@ -1,21 +1,3 @@
-const fs = require("fs")
-
-let playersData = []
-let nflTeamsData = []
-
-try {
-  const raw = fs.readFileSync(__dirname + "/players.json")
-  const json = JSON.parse(raw)
-
-  playersData = json.players || []
-  nflTeamsData = json.teams || []
-
-  console.log("✅ Players loaded:", playersData.length)
-
-} catch (e) {
-  console.log("❌ Failed to load players.json", e)
-}
-
 const express = require("express")
 const http = require("http")
 const { Server } = require("socket.io")
@@ -26,9 +8,6 @@ const io = new Server(server)
 
 app.use(express.static("public"))
 
-app.get("/players.json", (req, res) => {
-  res.sendFile(__dirname + "/players.json")
-})
 /* ---------- STATE ---------- */
 
 let teams = []
@@ -78,7 +57,7 @@ function startTimer(){
   }, 1000)
 }
 
-/* ---------- AUTO PICK (SKIP) ---------- */
+/* ---------- AUTO PICK (UPDATED TO SKIP) ---------- */
 
 function autoPick(){
 
@@ -116,26 +95,25 @@ io.on("connection", socket => {
 
   socket.on("setup", data => {
 
-  console.log("🔥 Setup received")
+    console.log("🔥 Setup received")
 
-  if(!data) return
+    if(!data) return
 
-  teams = data.teams || []
+    teams = data.teams || []
+    nflTeams = data.nflTeams || []
+    players = data.players || []
 
-  // ✅ USE SERVER DATA ONLY
-  players = playersData
- 
-  drafted = []
-  currentPick = 0
+    drafted = []
+    currentPick = 0
 
-  draftOrder = snakeOrder(teams.length, 20)
+    draftOrder = snakeOrder(teams.length, 20)
 
-  console.log("Teams:", teams)
-  console.log("Players loaded:", players.length)
+    console.log("Teams:", teams)
+    console.log("Players loaded:", players.length)
 
-  startTimer()
-  emitState()
-})
+    startTimer()
+    emitState()
+  })
 
   /* ---------- LOAD SAVED STATE ---------- */
 
@@ -189,16 +167,11 @@ io.on("connection", socket => {
     emitState()
   })
 
-  /* ---------- REPLACE SKIPPED PICK ---------- */
+  /* ---------- REPLACE SKIPPED PICK (ADDED) ---------- */
 
   socket.on("replacePick", ({ index, name }) => {
 
-    if(index == null || !name) return
-
-    if(index < 0 || index >= drafted.length){
-      console.log("⚠️ Invalid index")
-      return
-    }
+    if(!name) return
 
     if(drafted[index] !== "SKIPPED"){
       console.log("⚠️ Not a skipped pick")
@@ -216,43 +189,6 @@ io.on("connection", socket => {
 
     emitState()
   })
-
-  /* ---------- FORCE PICK (FIXED) ---------- */
-
-socket.on("forcePick", ({ index, name }) => {
-
-  if(index == null || !name) return
-
-  if(index < 0 || index >= draftOrder.length){
-    console.log("⚠️ Invalid index")
-    return
-  }
-
-  // prevent duplicates
-  if(drafted.includes(name)){
-    console.log("⚠️ Player already drafted")
-    return
-  }
-
-  // ONLY allow replacing existing picks OR next pick
-  if(index > drafted.length){
-    console.log("⚠️ Cannot skip ahead beyond next pick")
-    return
-  }
-
-  // If replacing existing pick
-  if(index < drafted.length){
-    drafted[index] = name
-  } else {
-    // If it's the current pick
-    drafted.push(name)
-    currentPick++
-  }
-
-  console.log("⚡ Force pick:", index, name)
-
-  emitState()
-})
 
   /* ---------- UNDO ---------- */
 
@@ -282,7 +218,7 @@ socket.on("forcePick", ({ index, name }) => {
 
 /* ---------- START SERVER ---------- */
 
-const PORT = process.env.PORT || 3000
+const PORT = 3000
 
 server.listen(PORT, () => {
   console.log("🚀 Server running on port " + PORT)
