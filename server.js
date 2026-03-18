@@ -190,6 +190,20 @@ io.on("connection", socket => {
     emitState()
   })
 
+  /* ---------- FORCE PICK (ADDED) ---------- */
+
+  socket.on("forcePick", ({ index, name }) => {
+
+    if(index < 0 || index >= draftOrder.length) return
+    if(!name) return
+
+    drafted[index] = name
+
+    console.log("⚡ Force pick:", index, name)
+
+    emitState()
+  })
+
   /* ---------- UNDO ---------- */
 
   socket.on("undo", () => {
