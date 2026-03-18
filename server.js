@@ -195,38 +195,42 @@ io.on("connection", socket => {
     emitState()
   })
 
-  /* ---------- FORCE PICK (NEW - COMMISSIONER TOOL) ---------- */
+  /* ---------- FORCE PICK (FIXED) ---------- */
 
-  socket.on("forcePick", ({ index, name }) => {
+socket.on("forcePick", ({ index, name }) => {
 
-    if(index == null || !name) return
+  if(index == null || !name) return
 
-    if(index < 0 || index >= draftOrder.length){
-      console.log("⚠️ Invalid index")
-      return
-    }
+  if(index < 0 || index >= draftOrder.length){
+    console.log("⚠️ Invalid index")
+    return
+  }
 
-    if(drafted.includes(name)){
-      console.log("⚠️ Player already drafted")
-      return
-    }
+  // prevent duplicates
+  if(drafted.includes(name)){
+    console.log("⚠️ Player already drafted")
+    return
+  }
 
-    // Expand drafted array if needed
-    while(drafted.length <= index){
-      drafted.push("")
-    }
+  // ONLY allow replacing existing picks OR next pick
+  if(index > drafted.length){
+    console.log("⚠️ Cannot skip ahead beyond next pick")
+    return
+  }
 
+  // If replacing existing pick
+  if(index < drafted.length){
     drafted[index] = name
+  } else {
+    // If it's the current pick
+    drafted.push(name)
+    currentPick++
+  }
 
-    // Keep currentPick aligned
-    if(index >= currentPick){
-      currentPick = index + 1
-    }
+  console.log("⚡ Force pick:", index, name)
 
-    console.log("⚡ Force pick:", index, name)
-
-    emitState()
-  })
+  emitState()
+})
 
   /* ---------- UNDO ---------- */
 
