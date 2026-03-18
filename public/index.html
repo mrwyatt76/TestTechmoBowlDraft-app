@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 
@@ -90,7 +89,6 @@ Draft Timer: <span id="timer">60</span>
 
 <br><br>
 
-<!-- ✅ FIXED SEARCH INPUT -->
 <input id="search" placeholder="Search...">
 
 <div id="players"></div>
@@ -116,7 +114,6 @@ const socket = io()
 let state = {}
 let positionFilter = "ALL"
 
-/* ✅ LIVE SEARCH FIX */
 document.getElementById("search").addEventListener("input", () => {
   render()
 })
@@ -203,6 +200,39 @@ window.setFilter = function(p){
   render()
 }
 
+/* ✅ ADDED EXPORT CSV */
+window.exportCSV = function(){
+
+  let teams = state.teams || []
+  let picks = state.drafted || []
+  let order = state.draftOrder || []
+
+  if(!teams.length || !picks.length){
+    alert("Nothing to export")
+    return
+  }
+
+  let rows = []
+  rows.push(["Pick","Team","Player"])
+
+  picks.forEach((p,i)=>{
+    let team = teams[order[i]]
+    rows.push([i+1, team, p])
+  })
+
+  let csv = rows.map(r => r.join(",")).join("\n")
+
+  let blob = new Blob([csv], { type: "text/csv" })
+  let url = URL.createObjectURL(blob)
+
+  let a = document.createElement("a")
+  a.href = url
+  a.download = "draft.csv"
+  a.click()
+
+  URL.revokeObjectURL(url)
+}
+
 /* ---------- RENDER ---------- */
 
 function render(){
@@ -212,7 +242,6 @@ list.innerHTML=""
 
 let query=document.getElementById("search").value.toLowerCase().trim()
 
-/* TEAMS */
 if(positionFilter==="TEAMS"){
 (state.nflTeams||[]).forEach(t=>{
 if(!t.name.toLowerCase().includes(query)) return
@@ -228,7 +257,6 @@ list.appendChild(d)
 return
 }
 
-/* PLAYERS */
 (state.players||[]).forEach(p=>{
 
 if(positionFilter!=="ALL"){
@@ -255,7 +283,6 @@ list.appendChild(d)
 
 })
 
-/* BOARD */
 let board=document.getElementById("board")
 board.innerHTML=""
 
@@ -309,12 +336,23 @@ if(!picks[idx]) continue
 
 let teamIndex=order[idx]
 cells[teamIndex].innerText=picks[idx]
+
+if(picks[idx] === "SKIPPED"){
+  cells[teamIndex].style.background = "#ffcccc"
+
+  cells[teamIndex].onclick = () => {
+    let name = prompt("Enter player name for skipped pick:")
+    if(name){
+      socket.emit("replacePick", { index: idx, name })
+    }
+  }
+}
+
 }
 
 board.appendChild(row)
 }
 
-/* HISTORY */
 let history=document.getElementById("history")
 history.innerHTML=""
 
