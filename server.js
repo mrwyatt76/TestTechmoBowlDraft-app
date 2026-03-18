@@ -57,22 +57,13 @@ function startTimer(){
   }, 1000)
 }
 
-/* ---------- AUTO PICK ---------- */
+/* ---------- AUTO PICK (UPDATED TO SKIP) ---------- */
 
 function autoPick(){
 
-  let available = players.filter(p => !drafted.includes(p.name))
+  console.log("⏭ Skipping pick")
 
-  if(!available.length){
-    console.log("No players left for auto pick")
-    return
-  }
-
-  let pick = available[0]
-
-  console.log("Auto picking:", pick.name)
-
-  drafted.push(pick.name)
+  drafted.push("SKIPPED")
   currentPick++
 
   emitState()
@@ -173,6 +164,29 @@ io.on("connection", socket => {
     currentPick++
 
     startTimer()
+    emitState()
+  })
+
+  /* ---------- REPLACE SKIPPED PICK (ADDED) ---------- */
+
+  socket.on("replacePick", ({ index, name }) => {
+
+    if(!name) return
+
+    if(drafted[index] !== "SKIPPED"){
+      console.log("⚠️ Not a skipped pick")
+      return
+    }
+
+    if(drafted.includes(name)){
+      console.log("⚠️ Duplicate player")
+      return
+    }
+
+    drafted[index] = name
+
+    console.log("✅ Replaced skipped pick:", name)
+
     emitState()
   })
 
