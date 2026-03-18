@@ -57,7 +57,7 @@ function startTimer(){
   }, 1000)
 }
 
-/* ---------- AUTO PICK (UPDATED TO SKIP) ---------- */
+/* ---------- AUTO PICK (SKIP) ---------- */
 
 function autoPick(){
 
@@ -167,11 +167,16 @@ io.on("connection", socket => {
     emitState()
   })
 
-  /* ---------- REPLACE SKIPPED PICK (ADDED) ---------- */
+  /* ---------- REPLACE SKIPPED PICK ---------- */
 
   socket.on("replacePick", ({ index, name }) => {
 
-    if(!name) return
+    if(index == null || !name) return
+
+    if(index < 0 || index >= drafted.length){
+      console.log("⚠️ Invalid index")
+      return
+    }
 
     if(drafted[index] !== "SKIPPED"){
       console.log("⚠️ Not a skipped pick")
@@ -186,6 +191,39 @@ io.on("connection", socket => {
     drafted[index] = name
 
     console.log("✅ Replaced skipped pick:", name)
+
+    emitState()
+  })
+
+  /* ---------- FORCE PICK (NEW - COMMISSIONER TOOL) ---------- */
+
+  socket.on("forcePick", ({ index, name }) => {
+
+    if(index == null || !name) return
+
+    if(index < 0 || index >= draftOrder.length){
+      console.log("⚠️ Invalid index")
+      return
+    }
+
+    if(drafted.includes(name)){
+      console.log("⚠️ Player already drafted")
+      return
+    }
+
+    // Expand drafted array if needed
+    while(drafted.length <= index){
+      drafted.push("")
+    }
+
+    drafted[index] = name
+
+    // Keep currentPick aligned
+    if(index >= currentPick){
+      currentPick = index + 1
+    }
+
+    console.log("⚡ Force pick:", index, name)
 
     emitState()
   })
@@ -218,7 +256,7 @@ io.on("connection", socket => {
 
 /* ---------- START SERVER ---------- */
 
-const PORT = 3000
+const PORT = process.env.PORT || 3000
 
 server.listen(PORT, () => {
   console.log("🚀 Server running on port " + PORT)
