@@ -1,3 +1,21 @@
+const fs = require("fs")
+
+let playersData = []
+let nflTeamsData = []
+
+try {
+  const raw = fs.readFileSync(__dirname + "/players.json")
+  const json = JSON.parse(raw)
+
+  playersData = json.players || []
+  nflTeamsData = json.teams || []
+
+  console.log("✅ Players loaded:", playersData.length)
+
+} catch (e) {
+  console.log("❌ Failed to load players.json", e)
+}
+
 const express = require("express")
 const http = require("http")
 const { Server } = require("socket.io")
@@ -98,25 +116,26 @@ io.on("connection", socket => {
 
   socket.on("setup", data => {
 
-    console.log("🔥 Setup received")
+  console.log("🔥 Setup received")
 
-    if(!data) return
+  if(!data) return
 
-    teams = data.teams || []
-    nflTeams = data.nflTeams || []
-    players = data.players || []
+  teams = data.teams || []
 
-    drafted = []
-    currentPick = 0
+  // ✅ USE SERVER DATA ONLY
+  players = playersData
+ 
+  drafted = []
+  currentPick = 0
 
-    draftOrder = snakeOrder(teams.length, 20)
+  draftOrder = snakeOrder(teams.length, 20)
 
-    console.log("Teams:", teams)
-    console.log("Players loaded:", players.length)
+  console.log("Teams:", teams)
+  console.log("Players loaded:", players.length)
 
-    startTimer()
-    emitState()
-  })
+  startTimer()
+  emitState()
+})
 
   /* ---------- LOAD SAVED STATE ---------- */
 
