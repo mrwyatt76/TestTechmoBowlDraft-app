@@ -190,7 +190,7 @@ io.on("connection", socket => {
     emitState()
   })
 
-  /* 🔥 FORCE PICK (THIS IS WHAT YOU ADD) */
+  /* 🔥 FORCE PICK (VALIDATED) */
 
   socket.on("forcePick", ({ index, name }) => {
 
@@ -201,6 +201,20 @@ io.on("connection", socket => {
 
     if(!name){
       console.log("⚠️ No player name")
+      return
+    }
+
+    /* ✅ CHECK: player exists in players.json */
+    const playerExists = players.some(p => p.name === name)
+
+    if(!playerExists){
+      console.log("❌ Player not found:", name)
+      return
+    }
+
+    /* ✅ CHECK: player not already drafted */
+    if(drafted.includes(name)){
+      console.log("⚠️ Player already drafted:", name)
       return
     }
 
