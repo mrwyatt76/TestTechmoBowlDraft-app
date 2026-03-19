@@ -28,7 +28,7 @@ const POSITION_LIMITS = {
   RB: 4,
   WR: 4,
   TE: 2,
-  Oline: 5,
+  Oline: 1,
 
   LE: 2,
   RE: 2,
