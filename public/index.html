@@ -113,7 +113,6 @@ Draft Timer: <span id="timer">60</span>
 <h3>History</h3>
 <div id="history"></div>
 
-<!-- ✅ NEW ROSTERS SECTION -->
 <h3>Rosters</h3>
 <div id="rosters"></div>
 
@@ -128,6 +127,33 @@ const socket = io()
 
 let state = {}
 let positionFilter = "ALL"
+
+/* ✅ POSITION LIMITS */
+const POSITION_LIMITS = {
+  QB: 1,
+  RB: 2,
+  WR: 2,
+  TE: 1,
+  "TE/WR": 1,
+  Oline: 1,
+
+  LE: 1,
+  RE: 1,
+  RNT: 1,
+
+  LILB: 1,
+  RILB: 1,
+  LOLB: 1,
+  ROLB: 1,
+
+  FS: 1,
+  SS: 1,
+  LCB: 1,
+  RCB: 1,
+
+  P: 1,
+  K: 1
+}
 
 document.getElementById("search").addEventListener("input", () => {
   render()
@@ -207,14 +233,10 @@ window.resetDraft = function(){
 }
 
 window.forcePick = function(){
-
   let index = prompt("Enter pick number to override:")
   let name = prompt("Enter player name:")
-
   if(index === null || name === null) return
-
   index = parseInt(index) - 1
-
   socket.emit("forcePick", { index, name })
 }
 
@@ -373,7 +395,7 @@ row.innerText=(i+1)+". "+team+" → "+p
 history.appendChild(row)
 })
 
-/* ✅ NEW ROSTER RENDER */
+/* ✅ ROSTERS WITH LIMITS + RED WARNING */
 let rosterDiv = document.getElementById("rosters")
 rosterDiv.innerHTML = ""
 
@@ -392,8 +414,17 @@ rosters.forEach((r, i)=>{
   box.appendChild(title)
 
   Object.keys(r).forEach(pos=>{
+
     let row = document.createElement("div")
-    row.innerText = pos + ": " + r[pos]
+
+    let limit = POSITION_LIMITS[pos] || "-"
+    row.innerText = pos + ": " + r[pos] + " / " + limit
+
+    if(limit !== "-" && r[pos] > limit){
+      row.style.color = "red"
+      row.style.fontWeight = "bold"
+    }
+
     box.appendChild(row)
   })
 
