@@ -24,15 +24,15 @@ let interval = null
 /* ---------- POSITION LIMITS ---------- */
 
 const POSITION_LIMITS = {
-  QB: 1,
-  RB: 2,
-  WR: 3,
-  TE: 1,
-  Oline: 1,
+  QB: 2,
+  RB: 4,
+  WR: 4,
+  TE: 2,
+  Oline: 5,
 
   LE: 2,
   RE: 2,
-  NT: 2,
+  RNT: 2,
 
   LOLB: 2,
   LILB: 2,
@@ -44,8 +44,8 @@ const POSITION_LIMITS = {
   FS: 2,
   SS: 2,
 
-  K: 2,
-  P: 2
+  K: 1,
+  P: 1
 }
 
 /* ---------- SNAKE ORDER ---------- */
