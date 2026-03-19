@@ -393,8 +393,7 @@ rosters.forEach((r, i)=>{
 
   Object.keys(r).forEach(pos=>{
     let row = document.createElement("div")
-    let limit = POSITION_LIMITS[pos] || "-"
-    row.innerText = pos + ": " + r[pos] + " / " + limit
+    row.innerText = pos + ": " + r[pos]
     box.appendChild(row)
   })
 
