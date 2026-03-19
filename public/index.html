@@ -41,6 +41,15 @@ display:flex;align-items:center;justify-content:center;
 #history{background:white;padding:10px;max-height:250px;overflow:auto;border-radius:6px;}
 #timer{color:red;font-weight:bold;}
 
+#rosters{
+  background:white;
+  padding:10px;
+  border-radius:6px;
+  margin-top:10px;
+  max-height:300px;
+  overflow:auto;
+}
+
 button{padding:8px;margin:2px;}
 </style>
 </head>
@@ -103,6 +112,11 @@ Draft Timer: <span id="timer">60</span>
 <div>
 <h3>History</h3>
 <div id="history"></div>
+
+<!-- ✅ NEW ROSTERS SECTION -->
+<h3>Rosters</h3>
+<div id="rosters"></div>
+
 </div>
 
 </div>
@@ -119,13 +133,11 @@ document.getElementById("search").addEventListener("input", () => {
   render()
 })
 
-/* SAVE */
 window.saveDraft = function(){
   localStorage.setItem("draftState", JSON.stringify(state))
   alert("Draft saved!")
 }
 
-/* LOAD */
 window.loadDraft = function(){
   try{
     let saved = localStorage.getItem("draftState")
@@ -139,7 +151,6 @@ window.loadDraft = function(){
   }
 }
 
-/* AUTO LOAD */
 try{
   let saved = localStorage.getItem("draftState")
   if(saved){
@@ -158,7 +169,6 @@ socket.on("timer", t=>{
   document.getElementById("timer").innerText = t
 })
 
-/* START */
 window.start = function(){
 fetch("/players.json")
 .then(r=>{
@@ -195,7 +205,7 @@ window.resetDraft = function(){
     nflTeams: state.nflTeams
   })
 }
-/* Force pick */
+
 window.forcePick = function(){
 
   let index = prompt("Enter pick number to override:")
@@ -207,12 +217,12 @@ window.forcePick = function(){
 
   socket.emit("forcePick", { index, name })
 }
+
 window.setFilter = function(p){
   positionFilter = p
   render()
 }
 
-/* ✅ ADDED EXPORT CSV */
 window.exportCSV = function(){
 
   let teams = state.teams || []
@@ -348,18 +358,6 @@ if(!picks[idx]) continue
 
 let teamIndex=order[idx]
 cells[teamIndex].innerText=picks[idx]
-
-if(picks[idx] === "SKIPPED"){
-  cells[teamIndex].style.background = "#ffcccc"
-
-  cells[teamIndex].onclick = () => {
-    let name = prompt("Enter player name for skipped pick:")
-    if(name){
-      socket.emit("replacePick", { index: idx, name })
-    }
-  }
-}
-
 }
 
 board.appendChild(row)
@@ -373,6 +371,33 @@ let team=teams[order[i]]
 let row=document.createElement("div")
 row.innerText=(i+1)+". "+team+" → "+p
 history.appendChild(row)
+})
+
+/* ✅ NEW ROSTER RENDER */
+let rosterDiv = document.getElementById("rosters")
+rosterDiv.innerHTML = ""
+
+let rosters = state.rosters || []
+
+rosters.forEach((r, i)=>{
+
+  let box = document.createElement("div")
+  box.style.borderBottom = "1px solid #ccc"
+  box.style.padding = "6px"
+
+  let title = document.createElement("div")
+  title.innerText = teams[i]
+  title.style.fontWeight = "bold"
+
+  box.appendChild(title)
+
+  Object.keys(r).forEach(pos=>{
+    let row = document.createElement("div")
+    row.innerText = pos + ": " + r[pos]
+    box.appendChild(row)
+  })
+
+  rosterDiv.appendChild(box)
 })
 
 }
